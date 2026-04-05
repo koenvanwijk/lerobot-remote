@@ -34,11 +34,11 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 try:
-    from lerobot.teleoperators.teleoperator import Teleoperator, TeleopConfig
+    from lerobot.teleoperators.teleoperator import Teleoperator, TeleoperatorConfig
 
-    @TeleopConfig.register_subclass("remote_teleop")
+    @TeleoperatorConfig.register_subclass("remote_teleop")
     @dataclass
-    class RemoteTeleopConfig(TeleopConfig):
+    class RemoteTeleopConfig(TeleoperatorConfig):
         signaling_url: str = "http://localhost:8080"
         room: str = "default"
         hz: int = 30

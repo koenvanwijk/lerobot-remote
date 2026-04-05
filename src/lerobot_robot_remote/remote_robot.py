@@ -33,7 +33,8 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 try:
-    from lerobot.robots.robot import Robot, RobotConfig
+    from lerobot.robots.robot import Robot
+    from lerobot.robots.config import RobotConfig
 
     @RobotConfig.register_subclass("remote_robot")
     @dataclass
