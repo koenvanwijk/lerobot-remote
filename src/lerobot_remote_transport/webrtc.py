@@ -14,13 +14,9 @@ from typing import Callable
 
 from aiortc import RTCPeerConnection, RTCSessionDescription, RTCDataChannel
 
-from .signaling import SignalingClient
+from .signaling import SignalingClient, ProtocolError
 
 logger = logging.getLogger(__name__)
-
-class ProtocolError(RuntimeError):
-    """Raised when a signaling message has an unexpected type or missing fields."""
-
 
 CHANNEL_NAME = "actions"
 CONNECT_TIMEOUT = 30.0  # seconds to wait for DataChannel open before raising
@@ -63,7 +59,12 @@ class WebRTCTransport:
         logger.info("WebRTCTransport ready (role=%s)", self._role)
 
     async def send(self, message: dict) -> None:
-        assert self._channel is not None and self._channel.readyState == "open"
+        if self._channel is None or self._channel.readyState != "open":
+            state = self._channel.readyState if self._channel else "none"
+            raise RuntimeError(
+                f"WebRTC DataChannel is not open (state={state!r}). "
+                "Call connect() first or check the connection."
+            )
         self._channel.send(json.dumps(message))
 
     async def close(self) -> None:

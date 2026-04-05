@@ -23,6 +23,7 @@ from typing import Any
 from lerobot_action_space import ActionBridge, ActionMode
 
 from lerobot_remote_transport import SignalingClient, WebRTCTransport
+from lerobot_remote_transport.signaling import ProtocolError
 from lerobot_remote_transport.modes import action_mode_to_dict, action_mode_from_dict
 
 logger = logging.getLogger(__name__)

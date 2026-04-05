@@ -40,6 +40,7 @@ class SignalingClient:
         self._session: aiohttp.ClientSession | None = None
         self._recv_queue: asyncio.Queue[dict] | None = None
         self._poll_task: asyncio.Task | None = None
+        self._subscriber_id: str = ""  # assigned in connect()
 
     async def connect(self) -> None:
         self._recv_queue = asyncio.Queue()  # created inside the running event loop

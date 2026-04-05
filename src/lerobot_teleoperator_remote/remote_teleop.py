@@ -24,6 +24,7 @@ from typing import Any
 from lerobot_action_space import ActionBridge, ActionMode
 
 from lerobot_remote_transport import SignalingClient, WebRTCTransport
+from lerobot_remote_transport.signaling import ProtocolError
 from lerobot_remote_transport.modes import action_mode_to_dict, action_mode_from_dict
 
 logger = logging.getLogger(__name__)
@@ -94,8 +95,8 @@ class RemoteTeleop(Teleoperator):
 
         self._connected = False
         self._action_queue: queue.Queue[dict] = queue.Queue()
-        self._last_action: dict[str, Any] = {}
-        self._obs_loop_task: asyncio.Task | None = None
+        self._last_action: dict[str, Any] | None = None
+        self._obs_loop_task: asyncio.Future | None = None  # concurrent.futures.Future from run_coroutine_threadsafe
         self._physical_robot: Any | None = None  # optional: robot to pull obs from
 
     # ------------------------------------------------------------------
@@ -142,7 +143,7 @@ class RemoteTeleop(Teleoperator):
 
     def disconnect(self) -> None:
         if self._obs_loop_task:
-            self._loop.call_soon_threadsafe(self._obs_loop_task.cancel)
+            self._obs_loop_task.cancel()  # concurrent.futures.Future.cancel()
         if self._transport:
             self._run_async(self._transport.close())
         if self._signaling:
@@ -167,6 +168,9 @@ class RemoteTeleop(Teleoperator):
             self._last_action = decoded
             return decoded
         except queue.Empty:
+            if self._last_action is None:
+                logger.debug("get_action timeout — no action received yet, returning empty dict")
+                return {}
             logger.debug("get_action timeout — returning last known action")
             return dict(self._last_action)
 
