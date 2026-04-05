@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import uuid
 
 import aiohttp
 
@@ -42,6 +43,7 @@ class SignalingClient:
 
     async def connect(self) -> None:
         self._recv_queue = asyncio.Queue()  # created inside the running event loop
+        self._subscriber_id = str(uuid.uuid4())  # stable id for fan-out queues
         self._session = aiohttp.ClientSession()
         self._poll_task = asyncio.create_task(self._poll_loop())
         logger.info("SignalingClient connected: room=%s role=%s", self._room, self._role)
@@ -66,12 +68,14 @@ class SignalingClient:
         assert self._session is not None
         peer_role = "operator" if self._role == "robot" else "robot"
         url = f"{self._url}/signal/{self._room}/{peer_role}/recv"
+        headers = {"X-Subscriber-Id": self._subscriber_id}
         while True:
             try:
-                async with self._session.get(url, timeout=aiohttp.ClientTimeout(total=30)) as resp:
+                async with self._session.get(url, headers=headers, timeout=aiohttp.ClientTimeout(total=30)) as resp:
                     if resp.status == 200:
                         data = await resp.json()
                         await self._recv_queue.put(data)
+                    # 204 = timeout, just loop back
             except asyncio.CancelledError:
                 break
             except Exception as exc:
