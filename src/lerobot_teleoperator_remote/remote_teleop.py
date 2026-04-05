@@ -14,6 +14,10 @@ Used on the robot side as a drop-in replacement for a physical teleoperator.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from lerobot_remote_transport.webrtc import WebRTCTransport
+
 import asyncio
 import logging
 import queue
@@ -23,7 +27,7 @@ from typing import Any
 
 from lerobot_action_space import ActionBridge, ActionMode
 
-from lerobot_remote_transport import SignalingClient, WebRTCTransport
+from lerobot_remote_transport import SignalingClient
 from lerobot_remote_transport.signaling import ProtocolError
 from lerobot_remote_transport.modes import action_mode_to_dict, action_mode_from_dict
 
@@ -152,6 +156,7 @@ class RemoteTeleop(Teleoperator):
         self._run_async(self._signaling.connect())
         self._run_async(self._negotiate_modes())
 
+        from lerobot_remote_transport.webrtc import WebRTCTransport  # lazy: aiortc may not be installed
         self._transport = WebRTCTransport(self._signaling, role="robot")
         self._transport.on_message = self._on_action_received
         self._run_async(self._transport.connect())
