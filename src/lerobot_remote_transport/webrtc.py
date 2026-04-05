@@ -38,10 +38,11 @@ class WebRTCTransport:
         self._role = role
         self._pc = RTCPeerConnection()
         self._channel: RTCDataChannel | None = None
-        self._ready = asyncio.Event()
+        self._ready: asyncio.Event | None = None
         self.on_message: Callable[[dict], None] | None = None
 
     async def connect(self) -> None:
+        self._ready = asyncio.Event()  # created inside the running event loop
         if self._role == "operator":
             await self._connect_as_offerer()
         else:

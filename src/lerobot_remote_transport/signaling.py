@@ -33,10 +33,11 @@ class SignalingClient:
         self._room = room
         self._role = role
         self._session: aiohttp.ClientSession | None = None
-        self._recv_queue: asyncio.Queue[dict] = asyncio.Queue()
+        self._recv_queue: asyncio.Queue[dict] | None = None
         self._poll_task: asyncio.Task | None = None
 
     async def connect(self) -> None:
+        self._recv_queue = asyncio.Queue()  # created inside the running event loop
         self._session = aiohttp.ClientSession()
         self._poll_task = asyncio.create_task(self._poll_loop())
         logger.info("SignalingClient connected: room=%s role=%s", self._room, self._role)
@@ -48,6 +49,7 @@ class SignalingClient:
             resp.raise_for_status()
 
     async def receive(self) -> dict:
+        assert self._recv_queue is not None, "call connect() first"
         return await self._recv_queue.get()
 
     async def close(self) -> None:
