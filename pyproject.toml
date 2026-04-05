@@ -1,0 +1,31 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "lerobot-remote"
+version = "0.1.0"
+description = "LeRobot Robot and Teleoperator plugins for remote control over WebRTC"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.10"
+dependencies = [
+    "lerobot-action-space @ git+https://github.com/koenvanwijk/lerobot-action-space",
+    "aiortc>=1.9",
+    "aiohttp>=3.9",
+]
+
+[project.urls]
+Repository = "https://github.com/koenvanwijk/lerobot-remote"
+Issues = "https://github.com/koenvanwijk/lerobot-remote/issues"
+
+[tool.hatch.build.targets.wheel]
+# One pip package (lerobot-remote) installs three Python packages:
+#   lerobot_robot_remote        — LeRobot Robot plugin  (name = "remote_robot")
+#   lerobot_teleoperator_remote — LeRobot Teleop plugin (name = "remote_teleop")
+#   lerobot_remote_transport    — shared WebRTC/signaling transport (internal)
+packages = [
+    "src/lerobot_robot_remote",
+    "src/lerobot_teleoperator_remote",
+    "src/lerobot_remote_transport",
+]
