@@ -202,7 +202,8 @@ class RemoteRobot(Robot):
 
         # 2. Wait for robot capabilities
         msg = await self._signaling.receive()
-        assert msg.get("type") == "capabilities", f"Expected capabilities, got: {msg.get('type')}"
+        if msg.get("type") != "capabilities":
+            raise ProtocolError(f'Expected capabilities, got: {msg.get("type")!r} — full msg: {msg}')
         robot_modes = [action_mode_from_dict(m) for m in msg["robot_modes"]]
         logger.debug("Received robot capabilities (%d modes)", len(robot_modes))
 

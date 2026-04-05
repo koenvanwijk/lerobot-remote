@@ -207,7 +207,8 @@ class RemoteTeleop(Teleoperator):
         """
         # 1. Wait for operator capabilities
         msg = await self._signaling.receive()
-        assert msg.get("type") == "capabilities", f"Expected capabilities, got: {msg.get('type')}"
+        if msg.get("type") != "capabilities":
+            raise ProtocolError(f'Expected capabilities, got: {msg.get("type")!r} — full msg: {msg}')
         teleop_modes = [action_mode_from_dict(m) for m in msg["teleop_modes"]]
         logger.debug("Received operator capabilities (%d modes)", len(teleop_modes))
 
@@ -220,7 +221,8 @@ class RemoteTeleop(Teleoperator):
 
         # 3. Receive agreed modes chosen by operator
         msg = await self._signaling.receive()
-        assert msg.get("type") == "mode_agreed", f"Expected mode_agreed, got: {msg.get('type')}"
+        if msg.get("type") != "mode_agreed":
+            raise ProtocolError(f'Expected mode_agreed, got: {msg.get("type")!r} — full msg: {msg}')
         teleop_mode = action_mode_from_dict(msg["teleop_mode"])
         robot_mode = action_mode_from_dict(msg["robot_mode"])
 

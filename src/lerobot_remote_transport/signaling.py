@@ -15,6 +15,10 @@ import aiohttp
 logger = logging.getLogger(__name__)
 
 
+class ProtocolError(RuntimeError):
+    """Raised when a signaling message has an unexpected type or missing fields."""
+
+
 class SignalingClient:
     """
     Connects to the matchmaker signaling server via HTTP long-poll.

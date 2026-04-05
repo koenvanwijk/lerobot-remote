@@ -18,7 +18,12 @@ from .signaling import SignalingClient
 
 logger = logging.getLogger(__name__)
 
+class ProtocolError(RuntimeError):
+    """Raised when a signaling message has an unexpected type or missing fields."""
+
+
 CHANNEL_NAME = "actions"
+CONNECT_TIMEOUT = 30.0  # seconds to wait for DataChannel open before raising
 
 
 class WebRTCTransport:
@@ -47,7 +52,14 @@ class WebRTCTransport:
             await self._connect_as_offerer()
         else:
             await self._connect_as_answerer()
-        await self._ready.wait()
+        try:
+            await asyncio.wait_for(self._ready.wait(), timeout=CONNECT_TIMEOUT)
+        except asyncio.TimeoutError:
+            await self._pc.close()
+            raise TimeoutError(
+                f"WebRTC DataChannel '{CHANNEL_NAME}' did not open within {CONNECT_TIMEOUT}s "
+                f"(role={self._role}). Check that both peers are reachable and ICE succeeds."
+            )
         logger.info("WebRTCTransport ready (role=%s)", self._role)
 
     async def send(self, message: dict) -> None:
