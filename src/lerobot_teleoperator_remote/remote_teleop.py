@@ -95,6 +95,8 @@ class RemoteTeleop(Teleoperator):
         self._connected = False
         self._action_queue: queue.Queue[dict] = queue.Queue()
         self._last_action: dict[str, Any] = {}
+        self._obs_loop_task: asyncio.Task | None = None
+        self._physical_robot: Any | None = None  # optional: robot to pull obs from
 
     # ------------------------------------------------------------------
     # LeRobot required methods
@@ -123,6 +125,12 @@ class RemoteTeleop(Teleoperator):
         self._transport.on_message = self._on_action_received
         self._run_async(self._transport.connect())
 
+        # Start observation streaming loop if a physical robot is attached
+        if self._physical_robot is not None:
+            self._obs_loop_task = asyncio.run_coroutine_threadsafe(
+                self._obs_loop(), self._loop
+            )
+
         self._connected = True
         assert self._bridge is not None
         logger.info(
@@ -133,6 +141,8 @@ class RemoteTeleop(Teleoperator):
         )
 
     def disconnect(self) -> None:
+        if self._obs_loop_task:
+            self._loop.call_soon_threadsafe(self._obs_loop_task.cancel)
         if self._transport:
             self._run_async(self._transport.close())
         if self._signaling:
@@ -159,6 +169,29 @@ class RemoteTeleop(Teleoperator):
         except queue.Empty:
             logger.debug("get_action timeout — returning last known action")
             return dict(self._last_action)
+
+    def attach_robot(self, robot: Any) -> None:
+        """Attach a physical robot to stream observations back to the operator."""
+        self._physical_robot = robot
+
+    def send_observation(self, obs: dict[str, Any]) -> None:
+        """Send an observation dict back to the remote operator over the DataChannel."""
+        assert self._transport is not None, "call connect() first"
+        self._run_async(self._transport.send({"__obs__": True, **obs}))
+
+    async def _obs_loop(self) -> None:
+        """Continuously poll the attached physical robot and stream observations."""
+        interval = 1.0 / self.config.hz
+        while True:
+            try:
+                obs = self._physical_robot.get_observation()
+                await self._transport.send({"__obs__": True, **obs})
+                await asyncio.sleep(interval)
+            except asyncio.CancelledError:
+                break
+            except Exception as exc:
+                logger.warning("obs_loop error: %s", exc)
+                await asyncio.sleep(interval)
 
     def send_feedback(self, feedback: dict[str, Any]) -> None:
         """Send feedback (e.g. force/torque) back to the remote operator."""
@@ -194,6 +227,14 @@ class RemoteTeleop(Teleoperator):
         # 4. Build bridge with the agreed pair (operator already validated quality)
         self._bridge = ActionBridge(teleop_mode, robot_mode)
         logger.info("Mode agreed — bridge plan:\n%s", self._bridge.explain())
+
+        # 5. Send our action_features (joint key names) so operator knows what keys to use
+        if self._physical_robot is not None:
+            features = list(self._physical_robot.action_features.keys())
+        else:
+            features = []
+        await self._signaling.send({"type": "features", "keys": features})
+        logger.debug("Sent action features: %s", features)
 
     # ------------------------------------------------------------------
 

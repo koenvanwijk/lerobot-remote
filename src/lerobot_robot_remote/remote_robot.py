@@ -91,6 +91,7 @@ class RemoteRobot(Robot):
 
         self._connected = False
         self._last_observation: dict[str, Any] = {}
+        self._robot_features: dict[str, Any] = {}  # set after mode negotiation
         self._obs_lock = threading.Lock()
 
     # ------------------------------------------------------------------
@@ -98,13 +99,16 @@ class RemoteRobot(Robot):
 
     @property
     def observation_features(self) -> dict[str, Any]:
+        if self._robot_features:
+            return self._robot_features
         if self._bridge:
             return {f"{self._bridge.robot_mode.name}.obs": float}
-        # bridge not yet built (before connect) — return generic placeholder
         return {"remote.obs": float}
 
     @property
     def action_features(self) -> dict[str, Any]:
+        if self._robot_features:
+            return self._robot_features
         if self._bridge:
             return {f"{self._bridge.robot_mode.name}.action": float}
         return {"remote.action": float}
@@ -205,12 +209,18 @@ class RemoteRobot(Robot):
         # 3. Auto-select best pair
         self._bridge = ActionBridge.auto(self._teleop_modes, robot_modes)
 
-        # 4. Confirm agreed modes to robot
+        # 4. Confirm agreed modes to robot (robot responds with its action_features)
         await self._signaling.send({
             "type": "mode_agreed",
             "teleop_mode": action_mode_to_dict(self._bridge.teleop_mode),
             "robot_mode": action_mode_to_dict(self._bridge.robot_mode),
         })
+
+        # 5. Receive robot's action_features (joint key names + types)
+        msg = await self._signaling.receive()
+        if msg.get("type") == "features":
+            self._robot_features = {k: float for k in msg.get("keys", [])}
+            logger.info("Robot features received: %s", list(self._robot_features.keys()))
 
     # ------------------------------------------------------------------
 
@@ -219,6 +229,11 @@ class RemoteRobot(Robot):
         future = asyncio.run_coroutine_threadsafe(coro, self._loop)
         return future.result(timeout=30)
 
-    def _on_observation_received(self, obs: dict) -> None:
+    def _on_observation_received(self, msg: dict) -> None:
+        # Only store messages tagged as observations; ignore feedback and other control messages
+        if not msg.get("__obs__"):
+            logger.debug("RemoteRobot: ignoring non-obs message (keys=%s)", list(msg.keys()))
+            return
+        obs = {k: v for k, v in msg.items() if not k.startswith("__")}
         with self._obs_lock:
             self._last_observation = obs
