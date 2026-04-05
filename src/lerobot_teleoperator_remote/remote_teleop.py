@@ -99,6 +99,36 @@ class RemoteTeleop(Teleoperator):
         self._obs_loop_task: asyncio.Future | None = None  # concurrent.futures.Future from run_coroutine_threadsafe
         self._physical_robot: Any | None = None  # optional: robot to pull obs from
 
+
+    # ------------------------------------------------------------------
+    # LeRobot Teleoperator abstract property implementations
+
+    @property
+    def is_connected(self) -> bool:
+        return self._connected
+
+    @property
+    def is_calibrated(self) -> bool:
+        return True  # calibration is handled by the attached physical robot
+
+    @property
+    def action_features(self) -> dict:
+        """Joint key names and types for the actions we produce."""
+        if self._physical_robot is not None:
+            return self._physical_robot.action_features
+        return {}
+
+    @property
+    def feedback_features(self) -> dict:
+        """Features we accept as feedback (e.g. force/torque)."""
+        return {}
+
+    def calibrate(self) -> None:
+        pass  # handled by the attached physical robot
+
+    def configure(self) -> None:
+        pass  # configured at construction time
+
     # ------------------------------------------------------------------
     # LeRobot required methods
 

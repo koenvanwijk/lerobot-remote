@@ -34,7 +34,7 @@ class SignalingClient:
 
     def __init__(self, server_url: str, room: str, role: str):
         assert role in ("robot", "operator"), f"role must be 'robot' or 'operator', got {role!r}"
-        self._url = server_url.rstrip("/")
+        self._url = str(server_url).rstrip("/")
         self._room = room
         self._role = role
         self._session: aiohttp.ClientSession | None = None
