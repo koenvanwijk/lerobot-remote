@@ -17,9 +17,12 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 import sys, pathlib
-sys.path.insert(0, str(pathlib.Path(__file__).parent.parent / "src"))
-sys.path.insert(0, str(pathlib.Path(__file__).parent.parent.parent / "lerobot-action-space" / "src"))
-sys.path.insert(0, str(pathlib.Path(__file__).parent.parent.parent / "lerobot-matchmaker" / "src"))
+_repo = pathlib.Path(__file__).parent.parent
+sys.path.insert(0, str(_repo / "transport" / "src"))
+sys.path.insert(0, str(_repo / "robot" / "src"))
+sys.path.insert(0, str(_repo / "teleop" / "src"))
+sys.path.insert(0, str(_repo.parent / "lerobot-action-space" / "src"))
+sys.path.insert(0, str(_repo.parent / "lerobot-matchmaker" / "src"))
 
 
 # ---------------------------------------------------------------------------
