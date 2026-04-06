@@ -2,25 +2,22 @@
 requires = ["setuptools>=61"]
 build-backend = "setuptools.build_meta"
 
-# Dev meta-package: installs all three lerobot-remote sub-packages.
-# Use: pip install -e ./transport -e ./robot -e ./teleop
-#
-# Sub-packages (each installable separately):
-#   transport/  →  lerobot_remote_transport  (shared WebRTC + signaling)
-#   robot/      →  lerobot_robot_remote       (LeRobot Robot plugin)
-#   teleop/     →  lerobot_teleoperator_remote (LeRobot Teleoperator plugin)
-
 [project]
-name = "lerobot-remote-dev"
+name = "lerobot_robot_remote"
 version = "0.1.0"
-description = "Dev meta-package for lerobot-remote (installs all sub-packages)"
+description = "LeRobot Robot and Teleoperator plugins for remote control over WebRTC"
+readme = "README.md"
 license = { text = "MIT" }
 requires-python = ">=3.10"
 dependencies = [
-    "lerobot_remote_transport",
-    "lerobot_robot_remote",
-    "lerobot_teleoperator_remote",
+    "lerobot-action-space @ git+https://github.com/koenvanwijk/lerobot-action-space",
+    "aiortc>=1.9",
+    "aiohttp>=3.9",
 ]
 
 [project.urls]
 Repository = "https://github.com/koenvanwijk/lerobot-remote"
+Issues = "https://github.com/koenvanwijk/lerobot-remote/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
