@@ -26,6 +26,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from lerobot_action_space import ActionBridge, ActionMode
+from lerobot_action_space.compat import SO101_FOLLOWER_MODES
 
 from lerobot_remote_transport import SignalingClient
 from lerobot_remote_transport.signaling import ProtocolError
@@ -87,9 +88,9 @@ class RemoteTeleop(Teleoperator):
     config_class = RemoteTeleopConfig
     name = "remote_teleop"
 
-    def __init__(self, config: RemoteTeleopConfig, robot_modes: list[ActionMode]):
+    def __init__(self, config: RemoteTeleopConfig, robot_modes: list[ActionMode] | None = None):
         self.config = config
-        self._robot_modes = robot_modes
+        self._robot_modes: list[ActionMode] = robot_modes if robot_modes is not None else SO101_FOLLOWER_MODES
         self._bridge: ActionBridge | None = None
 
         self._loop: asyncio.AbstractEventLoop | None = None
