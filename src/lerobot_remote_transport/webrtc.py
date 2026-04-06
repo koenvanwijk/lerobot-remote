@@ -12,7 +12,7 @@ import json
 import logging
 from typing import Callable
 
-from aiortc import RTCPeerConnection, RTCSessionDescription, RTCDataChannel
+from aiortc import RTCPeerConnection, RTCSessionDescription, RTCDataChannel, RTCIceServer, RTCConfiguration
 
 from .signaling import SignalingClient, ProtocolError
 
@@ -20,6 +20,13 @@ logger = logging.getLogger(__name__)
 
 CHANNEL_NAME = "actions"
 CONNECT_TIMEOUT = 30.0  # seconds to wait for DataChannel open before raising
+
+# Default public STUN servers — sufficient for most direct/NATted connections.
+# Override by passing ice_servers= to WebRTCTransport.
+DEFAULT_STUN_SERVERS: list[RTCIceServer] = [
+    RTCIceServer(urls="stun:stun.l.google.com:19302"),
+    RTCIceServer(urls="stun:stun1.l.google.com:19302"),
+]
 
 
 class WebRTCTransport:
@@ -33,14 +40,21 @@ class WebRTCTransport:
     Set on_message to receive incoming dicts.
     """
 
-    def __init__(self, signaling: SignalingClient, role: str):
+    def __init__(
+        self,
+        signaling: SignalingClient,
+        role: str,
+        ice_servers: list[RTCIceServer] | None = None,
+    ):
         assert role in ("robot", "operator")
         self._signaling = signaling
         self._role = role
-        self._pc = RTCPeerConnection()
+        servers = ice_servers if ice_servers is not None else DEFAULT_STUN_SERVERS
+        self._pc = RTCPeerConnection(configuration=RTCConfiguration(iceServers=servers))
         self._channel: RTCDataChannel | None = None
         self._ready: asyncio.Event | None = None
         self.on_message: Callable[[dict], None] | None = None
+        logger.debug("WebRTCTransport init: role=%s, ICE servers=%s", role, [s.urls for s in servers])
 
     async def connect(self) -> None:
         self._ready = asyncio.Event()  # created inside the running event loop
