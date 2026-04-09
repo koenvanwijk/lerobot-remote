@@ -261,9 +261,19 @@ class RemoteTeleop(Teleoperator):
         logger.debug("Received operator capabilities (%d modes)", len(teleop_modes))
 
         # 2. Send our robot capabilities
+        # Auto-detect modes from attached physical robot's type if not explicitly set
+        robot_modes = self._robot_modes
+        if self._physical_robot is not None:
+            robot_name = getattr(self._physical_robot, "name", None)
+            if robot_name:
+                from lerobot_action_space.compat import get_modes_for_robot
+                detected = get_modes_for_robot(robot_name)
+                if detected:
+                    robot_modes = detected
+                    logger.debug("Auto-detected robot modes from attached robot type %r (%d modes)", robot_name, len(detected))
         await self._signaling.send({
             "type": "capabilities",
-            "robot_modes": [action_mode_to_dict(m) for m in self._robot_modes],
+            "robot_modes": [action_mode_to_dict(m) for m in robot_modes],
         })
         logger.debug("Sent robot capabilities (%d modes)", len(self._robot_modes))
 
