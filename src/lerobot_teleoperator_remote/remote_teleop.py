@@ -26,6 +26,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from lerobot_action_space import ActionBridge, ActionMode
+from lerobot_action_space.compat import get_modes_for_robot
 from lerobot_action_space.compat import SO101_FOLLOWER_MODES
 
 from lerobot_remote_transport import SignalingClient
@@ -48,6 +49,7 @@ try:
         signaling_url: str = "http://localhost:8080"
         room: str = "default"
         hz: int = 30
+        robot_type: str | None = None  # e.g. "so101_follower"; used to auto-lookup modes from compat.py
 
 except ImportError:
     @dataclass
@@ -55,6 +57,7 @@ except ImportError:
         signaling_url: str = "http://localhost:8080"
         room: str = "default"
         hz: int = 30
+        robot_type: str | None = None
 
     class Teleoperator:  # type: ignore[no-redef]
         pass
@@ -90,7 +93,12 @@ class RemoteTeleop(Teleoperator):
 
     def __init__(self, config: RemoteTeleopConfig, robot_modes: list[ActionMode] | None = None):
         self.config = config
-        self._robot_modes: list[ActionMode] = robot_modes if robot_modes is not None else SO101_FOLLOWER_MODES
+        if robot_modes is not None:
+            self._robot_modes: list[ActionMode] = robot_modes
+        else:
+            _rt = getattr(config, 'robot_type', None)
+            _looked_up = get_modes_for_robot(_rt) if _rt else []
+            self._robot_modes = _looked_up if _looked_up else SO101_FOLLOWER_MODES
         self._bridge: ActionBridge | None = None
 
         self._loop: asyncio.AbstractEventLoop | None = None
