@@ -139,30 +139,27 @@ MODE_SCENARIOS = [
         id="koch-norm-norm",
     ),
     pytest.param(
-        "SO101 — deg teleop → norm robot (no numeric conversion, passthrough)",
+        "SO101 — deg teleop → norm robot (÷180)",
         "so101_follower",
-        ["joint_absolute_deg"],   # teleop only advertises deg
-        ["joint_absolute_norm"],  # robot only accepts norm
+        ["joint_absolute_deg"],
+        ["joint_absolute_norm"],
         "joint_absolute_deg",
         "joint_absolute_norm",
         {"j1.pos": 90.0, "j2.pos": -45.0, "j3.pos": 0.0},
-        # ActionBridge marks this as 'exact' — no ConversionStep for deg→norm is registered.
-        # Values pass through unchanged. The robot is responsible for interpreting units.
-        {"j1.pos": 90.0, "j2.pos": -45.0, "j3.pos": 0.0},
-        0.01,
+        {"j1.pos": 0.5, "j2.pos": -0.25, "j3.pos": 0.0},
+        0.001,
         id="so101-deg-to-norm",
     ),
     pytest.param(
-        "SO101 — norm teleop → deg robot (no numeric conversion, passthrough)",
+        "SO101 — norm teleop → deg robot (×180)",
         "so101_follower",
-        ["joint_absolute_norm"],  # teleop only advertises norm
-        ["joint_absolute_deg"],   # robot only accepts deg
+        ["joint_absolute_norm"],
+        ["joint_absolute_deg"],
         "joint_absolute_norm",
         "joint_absolute_deg",
         {"j1.pos": 0.5, "j2.pos": -0.25, "j3.pos": 1.0},
-        # Same: passthrough, no ConversionStep registered for norm→deg.
-        {"j1.pos": 0.5, "j2.pos": -0.25, "j3.pos": 1.0},
-        0.01,
+        {"j1.pos": 90.0, "j2.pos": -45.0, "j3.pos": 180.0},
+        0.001,
         id="so101-norm-to-deg",
     ),
     pytest.param(

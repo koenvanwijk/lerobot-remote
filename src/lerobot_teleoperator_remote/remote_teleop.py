@@ -203,14 +203,17 @@ class RemoteTeleop(Teleoperator):
         """
         Return the next decoded action from the remote operator.
 
+        The operator (RemoteRobot) already applied the ActionBridge conversion
+        before sending, so values arrive in the robot's target unit/frame.
+        We pass them through as-is — no second conversion.
+
         Blocks up to one control interval; returns last known action on timeout.
         """
         assert self._bridge is not None, "call connect() first"
         try:
             raw = self._action_queue.get(timeout=1.0 / self.config.hz)
-            decoded = self._bridge.convert(raw)
-            self._last_action = decoded
-            return decoded
+            self._last_action = raw
+            return raw
         except queue.Empty:
             if self._last_action is None:
                 logger.debug("get_action timeout — no action received yet, returning empty dict")
